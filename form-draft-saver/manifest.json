@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "表单草稿保存器",
+  "version": "1.0.0",
+  "description": "用户主动选择并保存表单文本字段草稿，本地 IndexedDB 存储，可预览并确认后恢复。不采集 DOM，不上传内容。",
+  "minimum_chrome_version": "106",
+  "permissions": ["activeTab", "scripting", "alarms"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "表单草稿保存器（点击后注入当前页）"
+  }
+}

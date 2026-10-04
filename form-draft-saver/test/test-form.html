@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>表单草稿保存器 · 本地测试页</title>
+<style>
+  body { font: 14px/1.7 -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+         max-width: 860px; margin: 24px auto; padding: 0 16px; color: #1f2328; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 16px; margin-top: 28px; border-bottom: 1px solid #d0d7de; padding-bottom: 4px; }
+  section { margin-bottom: 8px; }
+  form { border: 1px solid #d0d7de; border-radius: 8px; padding: 12px; margin: 8px 0; }
+  label { display: block; margin: 6px 0; }
+  input, textarea { font: inherit; padding: 4px 8px; border: 1px solid #d0d7de; border-radius: 6px; min-width: 240px; }
+  textarea { min-height: 48px; vertical-align: top; }
+  button { font: inherit; padding: 5px 12px; margin: 4px 6px 4px 0; border: 1px solid #d0d7de;
+           border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+  .route { background: #fff8c5; padding: 6px 10px; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; }
+  .hint { color: #57606a; font-size: 13px; }
+  code { background: #eff1f3; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>表单草稿保存器 · 本地测试页</h1>
+<p class="route" id="route-display"></p>
+<p class="hint">点击工具栏中的扩展图标注入面板。本页面包含：合规字段、各类必须排除的字段、
+SPA 路由模拟、表单替换与字段类型/唯一性破坏按钮，用于逐项验证扩展行为。</p>
+
+<section>
+  <h2>1. 个人资料表单 <code>id="profile-form"</code></h2>
+  <form id="profile_form" action="#submitted" method="get">
+    <label>姓名（id）<input type="text" id="f-name" name="name" autocomplete="name"></label>
+    <label>邮箱（仅 name）<input type="email" name="email" placeholder="没有 id，只有 name"></label>
+    <label>电话（id）<input type="tel" id="f-tel"></label>
+    <label>简介（textarea）<textarea id="f-bio" name="bio"></textarea></label>
+    <label>搜索词（仅 name）<input type="search" name="q"></label>
+    <!-- 以下全部应被排除，不应出现在面板可选列表中 -->
+    <label>密码（排除）<input type="password" name="pwd"></label>
+    <label>附件（排除）<input type="file" name="att"></label>
+    <input type="hidden" name="secret" value="x">
+    <label>短信验证码（排除）<input type="text" name="otp" autocomplete="one-time-code"></label>
+    <label>银行卡号（排除）<input type="text" name="card" autocomplete="cc-number"></label>
+    <label>新密码（排除）<input type="text" name="np" autocomplete="new-password"></label>
+    <label>无 id/name（排除）<input type="text"></label>
+    <label>重复 name A（排除）<input type="text" name="dup"></label>
+    <label>重复 name B（排除）<input type="text" name="dup"></label>
+    <label>只读（排除）<input type="text" name="ro" readonly value="readonly"></label>
+    <label>日期（排除）<input type="date" name="d"></label>
+    <button type="submit">提交表单（仅跳转，用于测试清理流程）</button>
+  </form>
+</section>
+
+<section>
+  <h2>2. 订单表单 <code>id="order_form"</code>（验证多表单并存）</h2>
+  <form id="order_form" action="#submitted" method="get">
+    <label>收货地址（id）<input type="text" id="o-addr" name="addr"></label>
+    <label>备注（仅 name）<textarea name="note"></textarea></label>
+  </form>
+</section>
+
+<section>
+  <h2>3. 超出上限表单 <code>id="many_form"</code>（25 个字段，验证 20 项上限）</h2>
+  <form id="many_form" action="#submitted" method="get"></form>
+</section>
+
+<section>
+  <h2>4. 无 id 表单（应被忽略）</h2>
+  <form action="#submitted" method="get">
+    <label>没有归属表单 id <input type="text" name="orphan"></label>
+  </form>
+</section>
+
+<section>
+  <h2>5. SPA / 表单操控（验证暂停与拒绝逻辑）</h2>
+  <button id="btn-route-a" type="button">pushState → /route-a?x=1</button>
+  <button id="btn-route-b" type="button">pushState → /route-b</button>
+  <button id="btn-hash" type="button">随机改 hash</button>
+  <button id="btn-replace-form" type="button">替换 profile_form（同 id 新元素）</button>
+  <button id="btn-morph-type" type="button">把 email 改成 text 类型</button>
+  <button id="btn-dup-email" type="button">追加第二个 name=email 字段</button>
+  <p class="hint">路由变化或表单被替换后，扩展应暂停绑定并要求重新选择；
+  字段类型变化或 name 不再唯一后，恢复该字段应被拒绝。</p>
+</section>
+
+<script>
+  // 当前路由显示
+  const rd = document.getElementById('route-display');
+  function showRoute() {
+    rd.textContent = '当前路由：' + location.pathname + location.search + location.hash;
+  }
+  window.addEventListener('popstate', showRoute);
+  window.addEventListener('hashchange', showRoute);
+  showRoute();
+
+  // 生成 25 个文本字段，验证“最多 20 项”
+  const many = document.getElementById('many_form');
+  for (let i = 1; i <= 25; i++) {
+    const label = document.createElement('label');
+    label.textContent = '字段 ' + i + ' ';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'm-' + i;
+    input.name = 'm' + i;
+    label.appendChild(input);
+    many.appendChild(label);
+  }
+
+  document.getElementById('btn-route-a').onclick = () => { history.pushState({}, '', '/route-a?x=1'); showRoute(); };
+  document.getElementById('btn-route-b').onclick = () => { history.pushState({}, '', '/route-b'); showRoute(); };
+  document.getElementById('btn-hash').onclick = () => { location.hash = '#sec-' + Math.random().toString(36).slice(2, 6); };
+
+  document.getElementById('btn-replace-form').onclick = () => {
+    const old = document.getElementById('profile_form');
+    if (!old) return;
+    const clone = old.cloneNode(true); // 同 id 的新元素：旧绑定必须失效
+    old.replaceWith(clone);
+  };
+
+  document.getElementById('btn-morph-type').onclick = () => {
+    const em = document.querySelector('#profile_form input[name="email"]');
+    if (em) em.type = 'text'; // 类型 email → text：恢复该字段应被拒绝
+  };
+
+  document.getElementById('btn-dup-email').onclick = () => {
+    const f = document.getElementById('profile_form');
+    if (!f) return;
+    const i = document.createElement('input');
+    i.type = 'text';
+    i.name = 'email'; // name 不再唯一：扫描应排除，恢复应拒绝
+    f.appendChild(i);
+  };
+</script>
+</body>
+</html>

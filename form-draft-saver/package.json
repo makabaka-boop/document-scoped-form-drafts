@@ -1,0 +1,13 @@
+{
+  "name": "form-draft-saver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "无后端的 Chrome MV3 表单草稿保存扩展（仅本地 IndexedDB）",
+  "scripts": {
+    "test": "node test/bg.test.cjs && node test/content.test.cjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.4",
+    "jsdom": "^27.2.0"
+  }
+}
